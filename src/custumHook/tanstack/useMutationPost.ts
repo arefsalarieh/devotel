@@ -1,7 +1,7 @@
 import axios from "axios";
 import {
   useMutation,
-  UseMutationResult,
+  type UseMutationResult,
   useQueryClient,
 } from "@tanstack/react-query";
 

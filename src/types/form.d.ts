@@ -93,3 +93,9 @@ export interface FormError {
   fieldId: string;
   message: string;
 }
+
+// State API response
+export interface StateApiResponse {
+  country: string;
+  states: string[];
+}

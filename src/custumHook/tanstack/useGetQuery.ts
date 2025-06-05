@@ -7,7 +7,6 @@ const useGetQuery = <T>(url:string , key:string[]  ) =>{
     const getList = async():Promise<T>=>{
         const result = await axios.get(url)
         return result.data
-        // console.log(result);
     }
     
     return useQuery({
@@ -17,7 +16,3 @@ const useGetQuery = <T>(url:string , key:string[]  ) =>{
 };
 
 export { useGetQuery };
-
-
-
-
