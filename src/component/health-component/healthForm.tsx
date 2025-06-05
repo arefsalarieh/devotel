@@ -3,39 +3,7 @@ import { useForm, useWatch } from "react-hook-form";
 import { getFormData, submitFormData } from "../../services/form";
 import type { InsuranceFormData, FormFieldType } from "../../types/form";
 
-
-const baseUrl = "https://assignment.devotel.io";
-
-
-
-// Because there was no field for country, the default was USA.
-const fetchDynamicOptions = async (
-  fieldId: string,
-  setDynamicOptionsMap: React.Dispatch<
-    React.SetStateAction<Record<string, Record<string, string[]>>>
-  >
-) => {
-  try {
-    const url = `${baseUrl}/api/getStates?country=USA`;
-    const res = await fetch(url);
-    const json = await res.json();
-
-    if (json?.states && Array.isArray(json.states)) {
-      setDynamicOptionsMap(
-        (prev: Record<string, Record<string, string[]>>) => ({
-          ...prev,
-          [fieldId]: {
-            USA: json.states,
-          },
-        })
-      );
-    }
-  } catch (e) {
-    console.error("❌ Failed to fetch dynamic options:", e);
-  }
-};
-
-const HomeForm = () => {
+const HealthForm = () => {
   const [formStructure, setFormStructure] = useState<InsuranceFormData | null>(
     null
   );
@@ -59,35 +27,64 @@ const HomeForm = () => {
 
   useEffect(() => {
     if (data && data.length > 0) {
-      const homeForm = data.find(
-        (form) => form.formId === "home_insurance_application"
-      );
-      setFormStructure(homeForm || null);
+      setFormStructure(data[0]);
     }
   }, [data]);
-
-  useEffect(() => {
-    // Fetch states for USA immediately on component mount
-    fetchDynamicOptions("state", setDynamicOptionsMap);
-  }, []);
-
-  useEffect(() => {
-    if (!formStructure) return;
-
-    formStructure.fields.forEach((field) => {
-      if (field.type === "select" && field.dynamicOptions) {
-        if (field.id === "state") {
-          setValue(field.id, "");
-        }
-      }
-    });
-
-    console.log("Dynamic Options Map:", dynamicOptionsMap);
-  }, [formStructure, dynamicOptionsMap]);
 
   const onSubmit = (formData: any) => {
     mutate(formData);
   };
+
+  const fetchDynamicOptions = async (
+    fieldId: string,
+    endpoint: string,
+    dependsOn: string,
+    value: string
+  ) => {
+    try {
+      const url = `https://assignment.devotel.io${endpoint}?${dependsOn}=${value}`;
+      const res = await fetch(url);
+      const json = await res.json();
+
+      if (json?.states && Array.isArray(json.states)) {
+        setDynamicOptionsMap((prev) => ({
+          ...prev,
+          [fieldId]: {
+            ...(prev[fieldId] || {}),
+            [value]: json.states,
+          },
+        }));
+      }
+    } catch (e) {
+      console.error("❌ Failed to fetch dynamic options:", e);
+    }
+  };
+
+  useEffect(() => {
+    if (!formStructure) return;
+
+    const checkAndFetch = (field: FormFieldType) => {
+      if (field.type === "select" && field.dynamicOptions) {
+        const { dependsOn, endpoint } = field.dynamicOptions;
+        const value = watchAll?.[dependsOn];
+
+        if (field.id === "state") {
+          setValue(field.id, "");
+        }
+
+        const currentOptions = dynamicOptionsMap[field.id]?.[value];
+        if (value && !currentOptions) {
+          fetchDynamicOptions(field.id, endpoint, dependsOn, value);
+        }
+      }
+
+      if (field.type === "group" && "fields" in field) {
+        field.fields.forEach(checkAndFetch);
+      }
+    };
+
+    formStructure.fields.forEach(checkAndFetch);
+  }, [watchAll?.country, formStructure]);
 
   const renderFields = (fields: FormFieldType[]) => {
     return fields.map((field) => {
@@ -118,20 +115,23 @@ const HomeForm = () => {
                 );
 
               case "select": {
+                const dependsOn = field.dynamicOptions?.dependsOn;
+                const dependsValue = dependsOn
+                  ? watchAll?.[dependsOn]
+                  : undefined;
+
                 const options =
-                  field.id === "state"
-                    ? dynamicOptionsMap[field.id]?.["USA"] || []
+                  dependsOn && dependsValue && field.dynamicOptions
+                    ? dynamicOptionsMap[field.id]?.[dependsValue] || []
                     : field.options || [];
 
                 const isDisabled =
-                  field.id === "security_system_type" &&
-                  watchAll?.has_security_system === "No";
+                  field.id === "smoking_frequency" && watchAll?.smoker === "No";
+
 
                 return (
                   <select
-                    {...register(field.id, {
-                      required: field.required && !isDisabled,
-                    })}
+                    {...register(field.id, { required: field.required && !isDisabled })}
                     className="border rounded p-2 w-full"
                     disabled={isDisabled}
                     defaultValue={isDisabled ? "" : undefined}
@@ -209,4 +209,4 @@ const HomeForm = () => {
   );
 };
 
-export default HomeForm;
+export default HealthForm;

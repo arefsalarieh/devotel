@@ -1,6 +1,7 @@
 import Home from "../../pages/home";
 import List from "../../pages/list";
 import Layout from "../../component/Layout";
+import Health from "../../pages/health";
 
 const routes = [
     {
@@ -8,11 +9,15 @@ const routes = [
         element: <Layout />,
         children: [
             {
-                index: true,
+                index: '/',
+                element: <Health />,
+            },
+            {
+                path: "/home",
                 element: <Home />,
             },
             {
-                path: "list",
+                path: "/list",
                 element: <List />,
             },
         ]
