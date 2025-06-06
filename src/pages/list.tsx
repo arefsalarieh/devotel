@@ -1,7 +1,10 @@
+import TableContainer from "../component/list-component/tableContainer"
 
 const List = () => {
   return (
-    <div>List</div>
+      <div>
+        <TableContainer />
+      </div>
   )
 }
 
